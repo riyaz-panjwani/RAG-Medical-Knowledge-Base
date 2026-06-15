@@ -44,6 +44,7 @@ env/
 
 # Data and Models
 data/chroma_db/
+data/vector_store/
 data/processed/
 models/embeddings_cache/
 

@@ -40,9 +40,9 @@ class Settings:
     TOP_K_RESULTS = int(_get("TOP_K_RESULTS", "5"))
 
     # --- Paths ---
-    PDF_DATA_PATH       = "data/medical_pdfs"
-    CHROMA_PERSIST_PATH = "data/chroma_db"
-    PROCESSED_DATA_PATH = "data/processed"
+    PDF_DATA_PATH        = "data/medical_pdfs"
+    CHROMA_PERSIST_PATH  = "data/vector_store"   # numpy-based store
+    PROCESSED_DATA_PATH  = "data/processed"
 
 
 settings = Settings()
