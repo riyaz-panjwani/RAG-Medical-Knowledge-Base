@@ -5,37 +5,29 @@ load_dotenv()
 
 
 class Settings:
-    # OpenAI Configuration
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-    OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4")
+    # --- Free stack (primary) ---
+    GROQ_API_KEY  = os.getenv("GROQ_API_KEY")        # console.groq.com — free
+    GROQ_MODEL    = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 
-    # Vector Database
-    VECTOR_DB = os.getenv("VECTOR_DB", "pinecone")  # pinecone or weaviate
+    EMBED_MODEL   = os.getenv("EMBED_MODEL", "all-MiniLM-L6-v2")   # local, free
+    VECTOR_DB     = os.getenv("VECTOR_DB", "chroma")                 # local, free
 
-    # Pinecone Configuration
-    PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
-    PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT")
+    # --- Optional paid alternatives ---
+    OPENAI_API_KEY     = os.getenv("OPENAI_API_KEY")
+    PINECONE_API_KEY   = os.getenv("PINECONE_API_KEY")
     PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "medical-rag")
+    WEAVIATE_URL       = os.getenv("WEAVIATE_URL", "http://localhost:8080")
+    WEAVIATE_API_KEY   = os.getenv("WEAVIATE_API_KEY")
 
-    # Weaviate Configuration
-    WEAVIATE_URL = os.getenv("WEAVIATE_URL", "http://localhost:8080")
-    WEAVIATE_API_KEY = os.getenv("WEAVIATE_API_KEY")
-
-    # Mistral Configuration
-    MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
-
-    # Document Processing
-    CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", 500))
-    CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", 100))
-
-    # RAG Pipeline
+    # --- Document processing ---
+    CHUNK_SIZE    = int(os.getenv("CHUNK_SIZE", 512))
+    CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", 64))
     TOP_K_RESULTS = int(os.getenv("TOP_K_RESULTS", 5))
-    MAX_TOKENS = int(os.getenv("MAX_TOKENS", 1000))
 
-    # File Paths
-    PDF_DATA_PATH = "data/medical_pdfs"
-    PROCESSED_DATA_PATH = "data/processed"
-    EMBEDDINGS_CACHE_PATH = "models/embeddings_cache"
+    # --- Paths ---
+    PDF_DATA_PATH        = "data/medical_pdfs"
+    CHROMA_PERSIST_PATH  = "data/chroma_db"
+    PROCESSED_DATA_PATH  = "data/processed"
 
 
 settings = Settings()
