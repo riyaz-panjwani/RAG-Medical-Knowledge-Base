@@ -1,157 +1,222 @@
-import streamlit as st
-from streamlit_extras.add_vertical_space import add_vertical_space
+import sys
 import os
-from dotenv import load_dotenv
+import warnings
+warnings.filterwarnings("ignore")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Load environment variables
-load_dotenv()
+import streamlit as st
 
-# Page configuration
 st.set_page_config(
-    page_title="Medical Knowledge RAG",
+    page_title="Medical Knowledge Base",
     page_icon="🏥",
     layout="wide",
-    initial_sidebar_state="expanded"
 )
 
-# Custom CSS
+# ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
-    <style>
-    .main {
-        padding-top: 2rem;
-    }
-    .query-box {
-        border: 2px solid #e0e0e0;
-        border-radius: 8px;
-        padding: 1rem;
-        background-color: #f9f9f9;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+<style>
+/* Chat bubbles */
+.user-bubble {
+    background: #1a73e8;
+    color: white;
+    padding: 12px 16px;
+    border-radius: 18px 18px 4px 18px;
+    margin: 8px 0 8px 20%;
+    font-size: 15px;
+}
+.bot-bubble {
+    background: #f1f3f4;
+    color: #1a1a1a;
+    padding: 12px 16px;
+    border-radius: 18px 18px 18px 4px;
+    margin: 8px 20% 8px 0;
+    font-size: 15px;
+    line-height: 1.6;
+}
+/* Source cards */
+.source-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-left: 4px solid #1a73e8;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin: 6px 0;
+    font-size: 13px;
+}
+.score-badge {
+    background: #e8f0fe;
+    color: #1a73e8;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+/* Header */
+.header-bar {
+    background: linear-gradient(90deg, #1a73e8 0%, #0d47a1 100%);
+    color: white;
+    padding: 18px 24px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+</style>
+""", unsafe_allow_html=True)
 
 
-def main():
-    st.title("🏥 Medical Knowledge Base RAG")
-    st.markdown("AI-powered medical information retrieval system")
+# ── Cached resource loading ───────────────────────────────────────────────────
 
-    # Sidebar
-    with st.sidebar:
-        st.header("⚙️ Configuration")
+@st.cache_resource(show_spinner="Loading embedding model…")
+def load_embedder():
+    from src.embeddings import EmbeddingsManager
+    return EmbeddingsManager()
 
-        add_vertical_space(1)
-        st.subheader("Vector Database")
-        vector_db = st.selectbox(
-            "Select Vector Database",
-            ["Pinecone", "Weaviate"],
-            help="Choose your vector database backend"
-        )
 
-        add_vertical_space(2)
-        st.subheader("LLM Provider")
-        llm_provider = st.selectbox(
-            "Select LLM Provider",
-            ["OpenAI (GPT-4)", "Mistral"],
-            help="Choose your language model provider"
-        )
+@st.cache_resource(show_spinner="Connecting to knowledge base…")
+def load_store():
+    from src.vector_store import VectorStore
+    from config.settings import settings
+    return VectorStore(persist_dir=settings.CHROMA_PERSIST_PATH)
 
-        add_vertical_space(2)
-        st.subheader("RAG Parameters")
-        top_k = st.slider(
-            "Top K Results",
-            min_value=1,
-            max_value=10,
-            value=5,
-            help="Number of documents to retrieve"
-        )
 
-        temperature = st.slider(
-            "Temperature",
-            min_value=0.0,
-            max_value=1.0,
-            value=0.7,
-            step=0.1,
-            help="Control response randomness"
-        )
+@st.cache_resource(show_spinner="Connecting to Groq LLM…")
+def load_llm(model: str):
+    from src.llm import LLMClient
+    return LLMClient(model=model)
 
-        add_vertical_space(3)
-        st.subheader("📁 Document Management")
-        if st.button("🔄 Load Documents", use_container_width=True):
-            st.info("Document loading feature coming soon...")
 
-        if st.button("🗑️ Clear Vector Store", use_container_width=True):
-            st.warning("Vector store clearing feature coming soon...")
+# ── Session state ─────────────────────────────────────────────────────────────
 
-        add_vertical_space(2)
-        st.markdown("---")
-        st.markdown(
-            "Built with LangChain, Streamlit, and modern LLM architecture",
-            help="RAG Medical Knowledge Base v1.0"
-        )
+if "messages" not in st.session_state:
+    st.session_state.messages = []   # list of {role, content, sources}
 
-    # Main content area
-    col1, col2 = st.columns([2, 1])
 
-    with col1:
-        st.subheader("🔍 Query Medical Knowledge")
-        user_query = st.text_area(
-            "Ask a medical question:",
-            placeholder="e.g., What are the symptoms of diabetes?",
-            height=100,
-            label_visibility="collapsed"
-        )
+# ── Sidebar ───────────────────────────────────────────────────────────────────
 
-    with col2:
-        st.subheader("Status")
-        st.info("🟢 System Ready", icon="ℹ️")
-        st.metric("Vector DB", vector_db, delta="Connected")
-        st.metric("LLM Provider", llm_provider.split()[0], delta="Active")
+with st.sidebar:
+    st.markdown("## ⚙️ Settings")
 
-    if user_query:
-        st.markdown("---")
+    model_choice = st.selectbox(
+        "Groq model",
+        ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "mixtral-8x7b-32768"],
+        index=0,
+        help="Faster = 8b · Smarter = 70b"
+    )
 
-        # Create tabs for different views
-        tab1, tab2, tab3 = st.tabs(["Answer", "Retrieved Documents", "Metadata"])
+    top_k = st.slider("Documents to retrieve", 1, 8, 3)
 
-        with tab1:
-            st.subheader("Generated Answer")
-            with st.spinner("🤔 Thinking..."):
-                st.info(
-                    "RAG pipeline not yet implemented. "
-                    "This is where the AI-generated answer will appear based on retrieved medical documents.",
-                    icon="ⓘ"
-                )
+    st.markdown("---")
+    st.markdown("### 📚 Knowledge Base")
 
-        with tab2:
-            st.subheader("Retrieved Source Documents")
-            st.info(
-                "Document retrieval from vector store coming soon. "
-                "Up to {} most relevant documents will be shown here.".format(top_k),
-                icon="ⓘ"
-            )
+    store_check = load_store()
+    n_docs = store_check.count()
+    if n_docs > 0:
+        st.success(f"✅ {n_docs} chunks indexed")
+    else:
+        st.error("❌ No documents indexed.\nRun `python run_pipeline.py` first.")
 
-        with tab3:
-            st.subheader("Pipeline Metadata")
-            col_meta1, col_meta2, col_meta3 = st.columns(3)
-            with col_meta1:
-                st.metric("Top K", top_k)
-            with col_meta2:
-                st.metric("Temperature", temperature)
-            with col_meta3:
-                st.metric("Query Tokens", len(user_query.split()))
+    st.markdown("**Topics covered:**")
+    topics = ["Diabetes", "Hypertension", "Heart Disease", "Mental Health", "Respiratory"]
+    for t in topics:
+        st.markdown(f"• {t}")
 
-    # Footer
-    add_vertical_space(3)
+    st.markdown("---")
+    if st.button("🗑️ Clear chat", use_container_width=True):
+        st.session_state.messages = []
+        st.rerun()
+
     st.markdown("---")
     st.markdown(
-        """
-        **How to use:**
-        1. Enter your medical question in the query box
-        2. System retrieves relevant documents from the medical knowledge base
-        3. AI generates an answer with citations from source documents
-        4. Adjust parameters in the sidebar for different response styles
-        """
+        "<small>**Stack:** sentence-transformers · ChromaDB · Groq Llama 3</small>",
+        unsafe_allow_html=True,
     )
 
 
-if __name__ == "__main__":
-    main()
+# ── Header ────────────────────────────────────────────────────────────────────
+
+st.markdown("""
+<div class="header-bar">
+    <h2 style="margin:0">🏥 Medical Knowledge Base</h2>
+    <p style="margin:4px 0 0 0; opacity:0.85; font-size:14px">
+        RAG-powered Q&A · sentence-transformers · ChromaDB · Groq Llama 3 · 100% free
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
+
+# ── Chat history ──────────────────────────────────────────────────────────────
+
+chat_area = st.container()
+
+with chat_area:
+    if not st.session_state.messages:
+        st.markdown("""
+        **Ask me anything about:**
+        - 🩺 Symptoms of common diseases
+        - 💊 Treatment and management options
+        - ❤️ Prevention and lifestyle advice
+        - 🧠 Mental health conditions
+        - 🫁 Respiratory health
+        """)
+    else:
+        for msg in st.session_state.messages:
+            if msg["role"] == "user":
+                st.markdown(
+                    f'<div class="user-bubble">🧑 {msg["content"]}</div>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    f'<div class="bot-bubble">🤖 {msg["content"]}</div>',
+                    unsafe_allow_html=True,
+                )
+                # Show sources in expander
+                if msg.get("sources"):
+                    with st.expander(f"📄 {len(msg['sources'])} source document(s)"):
+                        for src in msg["sources"]:
+                            st.markdown(
+                                f"""<div class="source-card">
+                                    <strong>{src['source']}</strong>
+                                    <span class="score-badge" style="float:right">
+                                        relevance {src['score']:.2f}
+                                    </span><br/>
+                                    <small>{src['content'][:200]}…</small>
+                                </div>""",
+                                unsafe_allow_html=True,
+                            )
+
+
+# ── Input ─────────────────────────────────────────────────────────────────────
+
+st.markdown("<br>", unsafe_allow_html=True)
+query = st.chat_input("Ask a medical question…")
+
+if query:
+    # Add user message
+    st.session_state.messages.append({"role": "user", "content": query})
+
+    # Load components
+    embedder = load_embedder()
+    store    = load_store()
+
+    try:
+        llm = load_llm(model_choice)
+    except ValueError as e:
+        st.error(str(e))
+        st.stop()
+
+    # RAG
+    with st.spinner("Searching knowledge base…"):
+        query_vec = embedder.embed_query(query)
+        hits      = store.search(query_vec, top_k=top_k)
+
+    with st.spinner("Generating answer…"):
+        answer = llm.generate(query, hits)
+
+    # Add bot message
+    st.session_state.messages.append({
+        "role":    "assistant",
+        "content": answer,
+        "sources": hits,
+    })
+
+    st.rerun()
