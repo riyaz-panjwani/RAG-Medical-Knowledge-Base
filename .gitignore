@@ -43,12 +43,12 @@ env/
 .DS_Store
 
 # Data and Models
-data/medical_pdfs/
+data/chroma_db/
 data/processed/
 models/embeddings_cache/
 
 # Streamlit
-.streamlit/
+.streamlit/secrets.toml
 *.streamlit.run
 
 # Cache

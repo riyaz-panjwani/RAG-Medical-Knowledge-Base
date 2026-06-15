@@ -12,6 +12,30 @@ st.set_page_config(
     layout="wide",
 )
 
+
+# ── Auto-ingest on cold start (Streamlit Cloud has no persistent disk) ────────
+@st.cache_resource(show_spinner="Building knowledge base from PDFs…")
+def auto_ingest():
+    """Run the ingestion pipeline if ChromaDB is empty."""
+    from src.pdf_processor import PDFProcessor
+    from src.embeddings import EmbeddingsManager
+    from src.vector_store import VectorStore
+    from config.settings import settings
+
+    store = VectorStore(persist_dir=settings.CHROMA_PERSIST_PATH)
+    if store.count() > 0:
+        return store   # already populated — skip
+
+    processor = PDFProcessor(
+        chunk_size=settings.CHUNK_SIZE,
+        chunk_overlap=settings.CHUNK_OVERLAP,
+    )
+    chunks = processor.process_directory(settings.PDF_DATA_PATH)
+    embedder = EmbeddingsManager(model_name=settings.EMBED_MODEL)
+    embedded = embedder.embed_chunks(chunks)
+    store.upsert(embedded)
+    return store
+
 # ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -107,7 +131,7 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### 📚 Knowledge Base")
 
-    store_check = load_store()
+    store_check = auto_ingest()
     n_docs = store_check.count()
     if n_docs > 0:
         st.success(f"✅ {n_docs} chunks indexed")
@@ -196,7 +220,7 @@ if query:
 
     # Load components
     embedder = load_embedder()
-    store    = load_store()
+    store    = auto_ingest()
 
     try:
         llm = load_llm(model_choice)
