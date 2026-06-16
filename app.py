@@ -144,6 +144,14 @@ with st.sidebar:
         st.markdown(f"• {t}")
 
     st.markdown("---")
+    st.markdown("### 💬 Memory")
+    n_turns = len([m for m in st.session_state.messages if m["role"] == "user"])
+    remembered = min(n_turns, 3)
+    st.caption(f"Remembers last **3 Q&A rounds**. Currently holding **{remembered}/3**.")
+    if n_turns > 3:
+        st.info("Oldest exchanges are no longer in context.", icon="ℹ️")
+
+    st.markdown("---")
     if st.button("🗑️ Clear chat", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
