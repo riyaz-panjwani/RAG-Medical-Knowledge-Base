@@ -41,25 +41,37 @@ class LLMClient:
         self.model = model
         logger.info(f"LLM ready — model: {model} via Groq (free)")
 
-    def generate(self, query: str, context_chunks: List[Dict]) -> str:
+    def generate(
+        self,
+        query: str,
+        context_chunks: List[Dict],
+        chat_history: List[Dict] | None = None,
+    ) -> str:
         """
         Generate an answer grounded in the retrieved context chunks.
 
         Args:
             query:          The user's question.
             context_chunks: Retrieved chunks from the vector store.
+            chat_history:   Previous turns [{role, content}, ...] for multi-turn memory.
 
         Returns:
             Generated answer string.
         """
         context = self._format_context(context_chunks)
-        messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": f"Context documents:\n\n{context}\n\nQuestion: {query}",
-            },
-        ]
+
+        messages: List[Dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
+
+        # Inject previous turns (last 6 messages = 3 full Q&A rounds) so the
+        # model can answer follow-up questions without losing context.
+        if chat_history:
+            for msg in chat_history[-6:]:
+                messages.append({"role": msg["role"], "content": msg["content"]})
+
+        messages.append({
+            "role": "user",
+            "content": f"Context documents:\n\n{context}\n\nQuestion: {query}",
+        })
 
         try:
             response = self.client.chat.completions.create(

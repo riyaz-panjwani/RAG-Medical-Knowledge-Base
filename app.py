@@ -234,7 +234,9 @@ if query:
         hits      = store.search(query_vec, top_k=top_k)
 
     with st.spinner("Generating answer…"):
-        answer = llm.generate(query, hits)
+        # Pass all messages except the one just appended (current user turn)
+        history = st.session_state.messages[:-1]
+        answer = llm.generate(query, hits, chat_history=history)
 
     # Add bot message
     st.session_state.messages.append({
