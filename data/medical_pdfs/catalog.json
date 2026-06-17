@@ -1,0 +1,33 @@
+{
+  "total_files": 5,
+  "total_size_bytes": 9100,
+  "total_size_mb": 0.01,
+  "files": [
+    {
+      "filename": "diabetes_overview.pdf",
+      "size_bytes": 1425,
+      "size_mb": 0.0
+    },
+    {
+      "filename": "heart_disease_prevention.pdf",
+      "size_bytes": 1788,
+      "size_mb": 0.0
+    },
+    {
+      "filename": "hypertension_management.pdf",
+      "size_bytes": 1818,
+      "size_mb": 0.0
+    },
+    {
+      "filename": "mental_health_wellbeing.pdf",
+      "size_bytes": 1914,
+      "size_mb": 0.0
+    },
+    {
+      "filename": "respiratory_health.pdf",
+      "size_bytes": 2155,
+      "size_mb": 0.0
+    }
+  ],
+  "timestamp": "2026-06-15T13:52:23.458475"
+}

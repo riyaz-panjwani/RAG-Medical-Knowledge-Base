@@ -1,0 +1,44 @@
+{
+  "timestamp": "2026-06-15T13:54:38.610474",
+  "total_files": 5,
+  "total_size_mb": 0.01,
+  "total_characters": 6638,
+  "total_words": 1018,
+  "files": [
+    {
+      "filename": "diabetes_overview.pdf",
+      "characters": 1365,
+      "words": 216,
+      "chunks": 3,
+      "avg_chunk_size": 455.0
+    },
+    {
+      "filename": "heart_disease_prevention.pdf",
+      "characters": 1279,
+      "words": 209,
+      "chunks": 2,
+      "avg_chunk_size": 639.5
+    },
+    {
+      "filename": "hypertension_management.pdf",
+      "characters": 1322,
+      "words": 205,
+      "chunks": 3,
+      "avg_chunk_size": 440.6666666666667
+    },
+    {
+      "filename": "mental_health_wellbeing.pdf",
+      "characters": 1364,
+      "words": 199,
+      "chunks": 3,
+      "avg_chunk_size": 454.6666666666667
+    },
+    {
+      "filename": "respiratory_health.pdf",
+      "characters": 1308,
+      "words": 189,
+      "chunks": 3,
+      "avg_chunk_size": 436.0
+    }
+  ]
+}
